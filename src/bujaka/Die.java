@@ -27,7 +27,7 @@ public class Die {
      */
     public static final int MAX_SIDES = 100;
     private int currentValue;
-    private int numSides;
+    private final int numSides;
     private final Random random = new Random();
 
     /**
