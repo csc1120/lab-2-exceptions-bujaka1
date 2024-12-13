@@ -38,7 +38,8 @@ public class Die {
      */
     public Die(int numSides) throws IllegalArgumentException{
         if (numSides < MIN_SIDES || numSides > MAX_SIDES){
-            throw new IllegalArgumentException("Illegal argument exception");
+            throw new IllegalArgumentException("Bad die creation: Illegal number of sides: "
+                    + numSides);
         }
         this.numSides = numSides;
     }
@@ -63,6 +64,6 @@ public class Die {
      * ensuring that the value is within the bounds of the number of sides
      */
     public void roll() {
-        currentValue = random.nextInt(numSides);
+        currentValue = random.nextInt(numSides) + 1;
     }
 }
