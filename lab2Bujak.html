@@ -1,0 +1,383 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/><title>bujaka</title></head><body><xmp>
+# Lab2
+
+>> | Earned | Possible | Criteria                                         |
+>> | ------ | -------- | ------------------------------------------------ |
+>> |   15   |    15    | Intermediate Commits                             |
+>> |   60   |    60    | Technical quality (see point deductions in code) |
+>> |   15   |    15    | Coding standard compliance and program clarity   |
+>> |   10   |    10    | Following submission instructions                |
+>
+> # Feedback
+> * Nice work!
+
+
+
+```
+```
+
+> #### **General Comments**
+- Good overall implementation of the `Die` class and the `Driver` program.
+- Input validation and exception handling are well-implemented for the most part.
+- However, there are **multiple logic issues**, including redundant checks, inconsistent method design, and unnecessary complexity.
+
+
+> #### **Point Deductions and Suggestions**
+
+> #### -2 Use of Multiple Return Statements in Methods**
+- Methods like `getCurrentValue()` and `createDice()` contain **multiple return statements**, which reduce readability and are against best practices:
+    - **`getCurrentValue()`**: Returning `current` and resetting `currentValue` breaks a clean flow. Instead, reset `currentValue` *after* storing it in a local variable.
+
+        ```
+        public int getCurrentValue() throws DieNotRolledException {
+            if (currentValue > numSides) {
+                throw new DieNotRolledException();
+            }
+            int current = currentValue;
+            currentValue = 0; // Move this out of return logic
+            return current;
+        }
+
+        ```
+    - **`createDice()`**: Multiple returns within the method reduce clarity:
+
+        ```
+        private static Die[] createDice(int numDice, int numSides) {
+            if (numDice < MIN_DICE || numDice > MAX_DICE) {
+                return null; // Redundant return here
+            }
+            Die[] dieList = new Die[numDice];
+            for (int i = 0; i < numDice; i++) {
+                dieList[i] = new Die(numSides);
+            }
+            return dieList;
+        }
+
+        ```
+
+    **Suggestion**: Restructure methods to avoid multiple exit points. Use flags or intermediary variables.
+
+
+> #### -2 Logic Error in `rollDice`**
+- The **inner loop** in `rollDice()` appears to be over-counting the rolls:
+
+    ```
+    for (int j = 0; j <= numRolls; j++) { ... }
+
+    ```
+    - The condition should likely be `j < numRolls`, not `j <= numRolls`, as it will perform **one extra roll** unnecessarily.
+
+    **Fix**
+
+    ```
+    for (int j = 0; j < numRolls; j++) {
+        // Corrected loop
+    }
+
+    ```
+
+> #### -1 Redundant Exception Handling**
+- In `createDice()` and `main()`, the exception handling for `IllegalArgumentException` is redundant:
+    - You already check bounds before creating `Die` objects.
+    - Catching the exception just to return `null` or print a message can be avoided.
+
+    **Suggestion**: Remove unnecessary exception handling or merge validation logic.
+
+
+> #### -1 Inefficient Use of `Scanner`**
+- The `Scanner` object in `getInput()` is not closed, leading to potential resource leaks. 
+
+    **Suggestion**: Use `try-with-resources` to manage `Scanner` automatically:
+
+    ```
+    try (Scanner scan = new Scanner(System.in)) {
+        // Input handling logic
+    }
+
+    ```
+
+> #### -1 Hardcoded Values in Scaling Logic
+- In `report()`, the scale factor `s = 10` is hardcoded:
+    ```
+    int scale = max / s;
+
+    ```
+    - This approach assumes arbitrary scaling and might lead to uneven distribution of stars.
+
+    **Suggestion**: Dynamically calculate scaling based on `max` or provide user-defined scaling.
+
+---
+
+#### **Additional Notes**
+- Code documentation and comments are clear and descriptive.
+- Consider using constants for magic numbers (e.g., array lengths in `rollDice()`).
+- Overall, the program meets requirements but can benefit from cleaner method design and loop optimizations.
+
+
+
+
+```
+
+
+/*
+ * Course: CSC1020
+ * Lab 2 - Exceptions
+ * Die class
+ * Name: Alexander Bujak
+ * Last Updated: 10/21/24
+ */
+package bujaka;
+
+import java.util.Random;
+
+/**
+ * The Die class will keep track of the number of sides on the Die,
+ * which should be between 2-100 inclusive,
+ * and whatever the current value of the top side of the Die is.
+ * It will also use a Random object to determine the next value when the Die is "rolled".
+ */
+public class Die {
+
+    /**
+     * The minimum sides of a die, which is 2.
+     */
+    public static final int MIN_SIDES = 2;
+
+    /**
+     * The maximum sides of a die, which is 100
+     */
+    public static final int MAX_SIDES = 100;
+    private int currentValue;
+    private final int numSides;
+    private final Random random = new Random();
+
+    /**
+     * Creates a Die object that has a number of sides
+     * @param numSides The number of sides that the object has
+     * @throws IllegalArgumentException Thrown when the parameter
+     * doesn't fit the bounds of a regular die
+     */
+    public Die(int numSides) throws IllegalArgumentException{
+        if (numSides < MIN_SIDES || numSides > MAX_SIDES){
+            throw new IllegalArgumentException("Bad die creation: Illegal number of sides: "
+                    + numSides);
+        }
+        this.numSides = numSides;
+    }
+
+    /**
+     * Gets the current value that is rolled by the die
+     * @return The current value of the die
+     * @throws DieNotRolledException Thrown when the current value
+     * doesn't fit the bounds of the number of sides of the die
+     */
+    public int getCurrentValue() throws DieNotRolledException{
+        if (currentValue > numSides) {
+            throw new DieNotRolledException();
+        }
+        int current = currentValue;
+        currentValue = 0;
+        return current;
+    }
+
+    /**
+     * Creates a random integer and assigns it to the current value,
+     * ensuring that the value is within the bounds of the number of sides
+     */
+    public void roll() {
+        currentValue = random.nextInt(numSides) + 1;
+    }
+}
+
+
+
+/*
+ * Course: CSC1020
+ * Lab 2 - Exceptions
+ * DieNotRolledException class
+ * Name: Alexander Bujak
+ * Last Updated: 10/21/24
+ */
+package bujaka;
+
+/**
+ * An exception that would be used whenever the current value of the dice
+ * doesn't fit within the boundaries of the number of sides of the dice.
+ */
+public class DieNotRolledException extends RuntimeException {
+    @Override
+    public String getMessage(){
+        return "Dice wasn't rolled";
+    }
+}
+
+
+/*
+ * Course: CSC1020
+ * Lab 2 - Exceptions
+ * Main Driver class
+ * Name: Alexander Bujak
+ * Last Updated: 12/13/24
+ */
+package bujaka;
+
+import java.util.Scanner;
+
+/**
+ * Contains a number of helper methods along with the main() method.
+ */
+public class Driver {
+    /**
+     * The minimum number of dice, which is 2.
+     */
+    public static final int MIN_DICE = 2;
+
+    /**
+     * The maximum number of dice, which is 10.
+     */
+    public static final int MAX_DICE = 10;
+
+    private static int[] getInput() {
+        Scanner scan = new Scanner(System.in);
+        boolean checker = false;
+        int[] list = new int[0];
+        while (!checker) {
+            System.out.print("""
+                    Please enter the number of dice to roll, how many sides the dice have,
+                    and how many rolls to complete, separating the values by a space.
+                    Example: "2 6 1000"
+                    
+                    Enter Configuration:""");
+            try {
+                String n = scan.nextLine();
+                String[] nums = n.split(" ");
+                list = new int[nums.length];
+                for (int i = 0; i < list.length; i++) {
+                    list[i] = Integer.parseInt(nums[i]);
+                }
+                checker = true;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input: All values must be whole numbers.");
+            }
+            if (list.length != 3) {
+                System.out.println("Invalid input: Expected 3 values but only received "
+                        + list.length);
+                checker = false;
+            }
+        }
+        return list;
+    }
+
+    private static Die[] createDice(int numDice, int numSides){
+        if (numDice >= MIN_DICE && numDice <= MAX_DICE) {
+            Die[] dieList = new Die[numDice];
+            try {
+                for (int i = 0; i < numDice; i++) {
+                    dieList[i] = new Die(numSides);
+                }
+            } catch (IllegalArgumentException e){
+                return dieList;
+            }
+            return dieList;
+        } else {
+            return null;
+        }
+    }
+
+    private static int[] rollDice(Die[] dice, int numSides, int numRolls){
+        int[] rolls = new int[(numSides * dice.length) - dice.length + 1];
+        Die d = new Die(numSides);
+        for (int i = 0; i < rolls.length; i++){
+            int total = 0;
+            for (int j = 0; j <= numRolls; j++){
+                int roll = 0;
+                for (int k = 0; k < dice.length; k++) {
+                    d.roll();
+                    roll += d.getCurrentValue();
+                }
+                if (roll == i + dice.length) {
+                    total++;
+                }
+            }
+            rolls[i] = total;
+        }
+        return rolls;
+    }
+
+    private static int findMax(int[] rolls){
+        int max = 0;
+        for (int roll : rolls) {
+            if (roll > max) {
+                max = roll;
+            }
+        }
+        return max;
+    }
+
+    private static void report(int numDice, int[] rolls, int max){
+        final int s = 10;
+        int scale = max / s;
+        for (int i = 0; i < rolls.length; i++){
+            int numStars = rolls[i] / scale;
+            System.out.printf("%-2d:%-8d", i + numDice, rolls[i]);
+            for(int j = 0; j < numStars; j++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+
+    public static void main(String[] args) {
+        boolean checker = false;
+        int[] input = new int[0];
+        Die[] dice = new Die[0];
+        int[] results = new int[0];
+        while (!checker) {
+            try {
+                input = getInput();
+                if (input.length == 3) {
+                    dice = createDice(input[0], input[1]);
+                }
+                assert dice != null;
+                results = rollDice(dice, input[1], input[2]);
+                checker = true;
+            } catch (IllegalArgumentException e) {
+                System.out.println("Bad die creation: Illegal number of sides: " + input[1]);
+            }
+        }
+        int max = findMax(results);
+        report(input[0], results, max);
+    }
+    /*boolean checker = false;
+        int[] input = new int[0];
+        Die[] dice = new Die[0];
+        while (!checker) {
+            System.out.print("""
+                     Please enter the number of dice to roll, how many sides the dice have,
+                     and how many rolls to complete, separating the values by a space.
+                     Example: "2 6 1000"
+
+                     Enter Configuration:""");
+            try {
+                input = getInput();
+                if (input.length == 3) {
+                    dice = createDice(input[0], input[1]);
+                    checker = true;
+                }
+            } catch (IllegalArgumentException e) {
+                System.out.println("Bad die creation: Illegal number of sides: " + input[1]);
+            }
+        }
+        int[] results;
+        if (dice != null) {
+            results = rollDice(dice, input[1], input[2]);
+            int max = findMax(results);
+            report(input[0], results, max);
+        }
+    }
+    
+}
+
+```
+
+</xmp><script type="text/javascript" src="https://csse.msoe.us/gradedown.js"></script></body></html>
